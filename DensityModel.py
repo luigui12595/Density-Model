@@ -1,56 +1,60 @@
-import os, struct, sys, getopt
+import os, struct, sys, getopt, argparse
 
-def main(argv):
-    if len(argv) == 0:
-        print('BinaryToText.py -i <inputfile> -o <outputfile>')
-        sys.exit(2)
-    inputfile = ''
-    outputfile = ''
-    try:
-        opts, args = getopt.getopt(argv, "hi:o:", ["ifile=", "ofile="])
-    except getopt.GetoptError:
-        print('BinaryToText.py -i <inputfile> -o <outputfile>')
-        sys.exit(2)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--particles", type=str,
+                        help="particles filename", required=True)
+    parser.add_argument("-nx", type=int,
+                        help="divide the x axis by given number", required=True)
+    parser.add_argument("-ny", type=int,
+                        help="divide the y axis by given number", required=True)
+    parser.add_argument("-nz", type=int,
+                        help="divide the z axis by given number", required=True)
+    parser.add_argument("-t", "--total_particles", type=int,
+                        help="number of total particles", required=True)
 
-    for opt, arg in opts:
-        if opt == '-h':
-            print('BinaryToText.py -i <inputfile> -o <outputfile>')
-            sys.exit()
-        elif opt in ("-i", "--ifile"):
-            inputfile = arg
-        elif opt in ("-o", "--ofile"):
-            outputfile = arg
+    args = vars(parser.parse_args())
+    nx = args['nx']
+    ny = args['ny']
+    nz = args['nz']
+    filename = args['particles']
+    count_particles = args['total_particles']
+    create_voxels(nx,ny,nz)
+    calc_density(filename, count_particles)
+    print_pbrt_file()
 
-    if inputfile == '':
-        print('BinaryToText.py -i <inputfile> -o <outputfile>')
-        sys.exit(2)
-    if outputfile == '':
-        outputfile = inputfile
+def create_voxels(nx,ny,nz):
+    R = 0.015
+    r = 0.00006
+    #identificar puntos vértices
+    #identificar con esos puntos la distancia euclidiana
 
-    convert_file(inputfile, outputfile)
-
-
-def convert_file(input_file, output_file):
+def calc_density(input_file, count_particles):
     with open("bin_files/"+input_file+".bin", "rb") as bin_file:
-        text_file = open("text_files/"+output_file+".csv", "a")
         bin_file_content = bin_file.read()
-        header = parse_header(str(struct.unpack('cccccc', bin_file_content[:6])))
-        text_file.write(header)
         line = ' '
-        index = 6
-        struct_size = 32
+        index = 0
+        struct_size = 24
         file_size = os.path.getsize("bin_files/"+input_file+".bin")
         while index < file_size:
             try:
-                line = parse_line(str(struct.unpack_from('dddc', bin_file_content, index)))
+                line = str(struct.unpack_from('ddd', bin_file_content, index))
+                #identificar el voxel de acuerdo a las coordenadas en los ejes
+                #
             except NameError as e:
                 print(e)
-                text_file.close()
-            text_file.write(line)
             index += struct_size
-        text_file.close()
     bin_file.close()
 
 
+def print_pbrt_file():
+    # pbrt_file = open("pbrt_files/density_model.pbrt", "a")
+    # pbrt_file.write(header)
+    try:
+    except NameError as e:
+        print(e)
+        # pbrt_file.close()
+    # pbrt_file.write(line)
+
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
