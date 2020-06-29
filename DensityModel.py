@@ -1,4 +1,11 @@
-import os, struct, sys, getopt, argparse
+import os, struct, sys, getopt, argparse, numpy as np
+
+class particle:
+  def __init__(self, x, y, z):
+    self.x = x
+    self.y = y
+    self.z = z
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -19,15 +26,49 @@ def main():
     nz = args['nz']
     filename = args['particles']
     count_particles = args['total_particles']
-    create_voxels(nx,ny,nz)
+
+
+    voxels = create_voxels(nx,ny,nz)
     calc_density(filename, count_particles)
     print_pbrt_file()
 
-def create_voxels(nx,ny,nz):
-    R = 0.015
-    r = 0.00006
-    #identificar puntos vértices
+def calc_voxel_size(nx,ny,nz):
+    #Radio mayor o poloidal
+    R = 0.2381
+
+    #Radio menor o toroidal
+    r = 0.09444165
+
+    #Voxel size X
+    x1 = particle(R+r, R+r, r)
+    x2 = particle(R+r, -(R+r), r)
+    dist_x = dist_eucl(x1,x2)
+    vox_x = dist_x / nx
+
+    #Voxel size Y
+    y1 = particle(R + r, R + r, r)
+    y2 = particle(R + r, -(R + r), r)
+    dist_y = dist_eucl(y1, y2)
+    vox_y = dist_y / ny
+
+    #Voxel size z
+    z1 = particle(R + r, R + r, r)
+    z2 = particle(R + r, -(R + r), r)
+    dist_z = dist_eucl(z1, z2)
+    vox_z = dist_z/nz
+
+    #incialización de voxels
+    voxels = np.zeros((nx,ny,nz))
+
+
     #identificar con esos puntos la distancia euclidiana
+    return voxels
+
+def dist_eucl(particle1, particle2):
+    a = np.array((particle1.x, particle1.y, particle1.z))
+    b = np.array((particle2.x, particle2.y, particle2.z))
+    return np.linalg.norm(a-b)
+
 
 def calc_density(input_file, count_particles):
     with open("bin_files/"+input_file+".bin", "rb") as bin_file:
@@ -48,7 +89,17 @@ def calc_density(input_file, count_particles):
 
 
 def print_pbrt_file():
-    # pbrt_file = open("pbrt_files/density_model.pbrt", "a")
+    # Radio mayor o poloidal
+    R = 0.2381
+
+    # Radio menor o toroidal
+    r = 0.09444165
+
+    # Calculo de puntos de extensión
+    ext_point1 = particle(R + r, R + r, r)
+    ext_point2 = particle(-(R + r), -(R + r), -r)
+
+    pbrt_file = open("pbrt_files/density_model.pbrt", "a")
     # pbrt_file.write(header)
     try:
     except NameError as e:
